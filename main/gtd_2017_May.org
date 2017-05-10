@@ -52,4 +52,21 @@
      - [ ] 策略代码
        - [ ] 版本一，按照下面网址说明，重新改写代码，入场条件做了一些修改
 
+** TODO 王雄混沌书 [0/2]
+   SCHEDULED: <2017-05-10 周三 16:00.+1d>
+
+*** TODO 框架修改
+    1. 章节次序修改
+    2. 章节内容修改
+
+*** TODO 内容阅读与整理
+
+    - [ ]  Chaos System with Only One Stable Equilibrium
+    - [ ]  Chaos System with None Stable Equilibrium
+    - [ ]  A Chaotic System with Any Number of Equilibrium
+    - [ ]  A Chaotic System with Any Type of Equilibrium
+    - [ ]  Simple Chaotic 3D Flows with A Line Equilibrium
+    - [ ]  Simple Chaotic 3D Flows with Surface Equilibrium
+
 * 财务
+
