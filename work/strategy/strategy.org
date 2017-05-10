@@ -53,3 +53,149 @@
    2. 最低价小于30日最高价指数平均减一跳，离场
    3. 如果收盘价小于30日最低价指数平均，同时 =ADX= 向上，开空
    4. 最高价大于30日最低价指数平均加一跳，离场
+
+** 策略代码
+   1. 版本一
+      #+BEGIN_EXAMPLE
+        Params
+      	  // DMI计算周期设为14
+      	  Numeric Length_DMI(14);
+      	  // ADX 计算周期设为30
+      	  Numeric Length_ADX(30);
+      	  // EMA 计算周期设为30
+      	  Numeric Length_EMA(30);
+      	  // 信号确认
+      	  Numeric EntryBars(2);
+
+        Vars
+      	  NumericSeries SumTR;
+      	  Numeric TR;
+      	  Numeric PlusDM;
+      	  Numeric MinusDM;
+	
+      	  NumericSeries SumPlusDM;
+      	  NumericSeries SumMinusDM;
+	
+      	  NumericSeries PlusDI(0);
+      	  NumericSeries MinusDI(0);	
+      	  Numeric DiffDI;
+      	  Numeric SumDI;
+      	  NumericSeries DX;
+      	  NumericSeries ADX;
+	
+      	  NumericSeries UpperBand;
+      	  NumericSeries DownBand;
+	
+      	  BoolSeries bLong(False);
+      	  BoolSeries bShort(False);
+	
+      	  Numeric Lots(0);
+	
+      	  // 循环变量
+      	  Numeric i(0);
+
+        Begin
+      	  // 集合竞价过滤
+      	  If(BarStatus == 2 And IsCallAuctionTime) Return;
+	
+      	  If(CurrentBar == Length_DMI){
+      		  SumTR = 0;
+      		  SumPlusDM = 0;
+      		  SumMinusDM = 0;
+      		  // +DM 与 -DM 计算
+      		  For i = 0 To Length_DMI - 1{
+      			  // ATR 计算
+      			  TR = Max(Max((High[i]-Low[i+1]), Abs(High[i]-Close[i+1])), Abs(Close[i+1] - Low[i]));
+      			  SumTR = SumTR + TR;
+      			  // +DM：今日最高 - 昨日最高，如果小于0，记为0
+      			  // -DM 计算：昨日最低-今日最低，如果小于0，记为0
+      			  PlusDM = High[i] - High[i+1];
+      			  MinusDM = Low[i+1] - Low[i];
+      			  PlusDM = IIF((PlusDM > 0), PlusDM, 0);
+      			  MinusDM = IIF(MinusDM > 0, MinusDM, 0);
+      			  If(PlusDM > MinusDM){
+      				  PlusDM = PlusDM;
+      				  MinusDM = 0;
+      			  }Else If(PlusDM < MinusDM){
+      				  PlusDM = 0;
+      				  MinusDM = MinusDM;
+      			  }Else{
+      				  PlusDM = 0;
+      				  MinusDM = 0;
+      			  }
+      			  SumPlusDM = SumPlusDM + PlusDM;
+      			  SumMinusDM = SumMinusDM + MinusDM;
+      		  }
+      	  }Else If(CurrentBar > Length_DMI-1){
+      		  PlusDM = High - High[1];
+      		  MinusDM = Low[1] - Low;
+      		  PlusDM = IIF((PlusDM > 0), PlusDM, 0);
+      		  MinusDM = IIF(MinusDM > 0, MinusDM, 0);
+      		  If(PlusDM > MinusDM){
+      			  PlusDM = PlusDM;
+      			  MinusDM = 0;
+      		  }Else If(PlusDM < MinusDM){
+      			  PlusDM = 0;
+      			  MinusDM = MinusDM;
+      		  }Else{
+      			  PlusDM = 0;
+      			  MinusDM = 0;
+      		  }
+      		  SumPlusDM = SumPlusDM[1] - SumPlusDM[1]/Length_DMI + PlusDM;
+      		  SumMinusDM = SumMinusDM[1] - SumMinusDM[1]/Length_DMI + MinusDM;
+      		  TR = Max(Max((High-Low), Abs(High-Close[1])), Abs(Close[1] - Low));
+      		  SumTR = SumTR[1] - SumTR[1]/Length_DMI + TR;
+      		  PlusDI = SumPlusDM/SumTR;
+      		  MinusDI = SumMinusDM/SumTR;
+      		  DiffDI = Abs(MinusDI-PlusDI);
+      		  SumDI = MinusDI + PlusDI;
+      		  DX = 100*(DiffDI/SumDI);
+      	  }Else{
+      		  SumTR = InvalidNumeric;
+      		  SumPlusDM = InvalidNumeric;
+      		  SumMinusDM = InvalidNumeric;
+      		  PlusDI = InvalidNumeric;
+      		  MinusDI = InvalidNumeric;
+      		  ADX = InvalidNumeric;
+      	  }
+	
+	
+      	  // 计算 ADX
+      	  ADX = XAverage(DX, Length_ADX);
+	
+      	  // 计算 EMA 通道
+      	  UpperBand = XAverage(High, Length_EMA);
+      	  DownBand = XAverage(Low, Length_EMA);
+		
+      	  // 突破上轨，且 ADX 向上
+      	  bLong = Close[1] > UpperBand[1] and ADX[1] > ADX[2]; 
+	
+      	  // 突破下轨，且ADX向下
+      	  bShort = Close[1] < DownBand[1];// and ADX[1] < ADX[2]; 
+	
+      	  If(bLong && MarketPosition == 0 && Vol > 0){
+      		  Buy(Lots, Max(Open, UpperBand[1]+MinMove*PriceScale));
+      	  }
+	
+      	  If(bShort && MarketPosition == 0 && Vol > 0){
+      		  SellShort(Lots, Min(Open, DownBand[1] - MinMove*PriceScale));
+      	  }
+	
+      	  If(MarketPosition==1 and BarsSinceEntry >0 And Vol > 0){
+      		  If(Low <= UpperBand[1] - MinMove*PriceScale){
+      			  Sell(Lots, Min(Open, UpperBand[1]-MinMove*PriceScale));
+      		  }
+      	  }
+	
+      	  If(MarketPosition==1 and BarsSinceEntry >0 And Vol > 0){
+      		  If(High >= DownBand[1] + MinMove*PriceScale){
+      			  BuyToCover(Max(Open, DownBand[1]+MinMove*PriceScale));
+      		  }
+      	  }
+	 
+      	  PlotNumeric("UpperBand", UpperBand);
+      	  PlotNumeric("DownBand", DownBand);
+      	  //PlotNumeric("ADX", ADX);
+	 
+        End
+      #+END_EXAMPLE
