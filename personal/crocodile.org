@@ -16,10 +16,10 @@
     当鳄鱼组线开始向上发散时A1>A2>A3且A1>REF(A1,1) A2>REF(A2,1) A1>REF(A3,1)，
     当前价格在鳄鱼组线之上，出现下分型，则在下分型的第三根K线买入
  
-*** 止损：
+*** 止损
     浮动止损，以21根K线的振幅平均值A为止损标的，当亏损达到2A时止损
 
-*** 加仓：
+*** 加仓
     当盈利超过2A时，三条组线依然是A1>A2>A3排列时（A1>REF(A1,1) A2>REF(A2,1) A1>REF(A3,1)，
     这个条件可以不要），一旦出现下分型，继续加仓。
     当下分型出现在下颚线之下时，不参与加仓
@@ -27,7 +27,7 @@
     加仓后，移动止损位需要以最新的进场位置为基准。
     加仓资金：第一笔建仓X，第二笔开始加仓0.5X，第三笔0.25X，第四笔0.12X，最多加仓4笔
 
-*** 出场：
+*** 出场
     1. 以最新下分型最低点为标准，当价格跌破分型最低点出场
     2. 打破止损出场
 
@@ -39,120 +39,121 @@
     
     #+BEGIN_EXAMPLE
       Params
-    	  //鳄鱼组线对应的三条线参数
-    	  Numeric Length1(5);
-    	  Numeric Offset1(3);
-    	  Numeric Length2(8);
-    	  Numeric Offset2(5);
-    	  Numeric Length3(13);
-    	  Numeric Offset3(8);
-	
-    	  // 分型范围
-    	  Numeric Length4(5);
-	
-    	  // 真实波动回溯范围
-    	  Numeric Length5(21);
-	
-    	  // 分型索引
-    	  Numeric Idx(3);
-	
-    	  // 开仓手数
-    	  Numeric Lots(0);
+        //鳄鱼组线对应的三条线参数
+        Numeric Length1(5);
+        Numeric Offset1(3);
+        Numeric Length2(8);
+        Numeric Offset2(5);
+        Numeric Length3(13);
+        Numeric Offset3(8);
+
+        // 分型范围
+        Numeric Length4(5);
+
+        // 真实波动回溯范围
+        Numeric Length5(21);
+
+        // 分型索引
+        Numeric Idx(3);
+
+        // 开仓手数
+        Numeric Lots(0);
 
       Vars
-    	  // 最大极值点
-    	  Numeric MaxIdx(0);
-    	  Numeric MaxValue(0);
-    	  // 最小值极值点
-    	  Numeric MinIdx(0);
-    	  Numeric MinValue(0);
-	
-    	  // 鳄鱼组线
-    	  NumericSeries Lip(0);
-    	  NumericSeries Teeth(0);
-    	  NumericSeries Mandible(0);
-	
-    	  // 入场后的最高价
-    	  NumericSeries HigherAfterEntry(0);
-    	  // 入场后的最低价
-    	  NumericSeries LowerAfterEntry(0);
-	
-    	  // 真实波动
-    	  NumericSeries TR(0);
-    	  NumericSeries ATR(0);
-	
-    	  // 止损线
-    	  NumericSeries StopLine(0);
-	
-    	  Numeric CountMax(0);
+        // 最大极值点
+        Numeric MaxIdx(0);
+        Numeric MaxValue(0);
+        // 最小值极值点
+        Numeric MinIdx(0);
+        Numeric MinValue(0);
+
+        // 鳄鱼组线
+        NumericSeries Lip(0);
+        NumericSeries Teeth(0);
+        NumericSeries Mandible(0);
+
+        // 入场后的最高价
+        NumericSeries HigherAfterEntry(0);
+        // 入场后的最低价
+        NumericSeries LowerAfterEntry(0);
+
+        // 真实波动
+        NumericSeries TR(0);
+        NumericSeries ATR(0);
+
+        // 止损线
+        NumericSeries StopLine(0);
+
+        Numeric CountMax(0);
 
       Begin
-    	  // 计算波动率
-    	  TR = Max(Max((High - Low), Abs(High-Close[1])), Abs(Close[1] - Low));
-    	  ATR = XAverage(TR, Length5);
-	
-    	  // 记录进场后最高价
-    	  If(BarsSinceEntry > 0){
-    		  HigherAfterEntry = Max(HigherAfterEntry[1], High[1]);
-    		  LowerAfterEntry = Min(LowerAfterEntry[1], Low[1]);
-    	  }
-	
-    	  // 定义鳄鱼组线
-    	  // 唇线：EMA(C, 5) 往前平移3天，这里尚未做平移
-    	  Lip = XAverage(Close, Length1);
-    	  // 牙齿：EMA(C, 8) 往前平移5天，这里尚未做平移
-    	  Teeth = XAverage(Close, Length2);
-    	  // 下颚：EMA(C, 13) 往前平移8天，这里尚未做平移
-    	  Mandible = XAverage(Close, Length3);
-	
-    	  // 分型
-    	  MaxValue = Extremes(High, Length4, True, MaxIdx);
-    	  MinValue = Extremes(Low, Length4, False, MinIdx);
-	
-    	  If(CurrentBar > Length3){
-    		  // 下鄂线往前平移8，牙齿线向前平移5，唇线向前平移3，三线发散
-    		  If(Lip[Offset1] > Teeth[Offset2] && Teeth[Offset2] > Mandible[Offset3]){
-    			  // Lip > Lip[1], Teeth > Teeth[1], Mandible > Mandible[1]
-    			  If(Lip[Offset1] > Lip[Offset1+1] && Teeth[Offset2] > Teeth[Offset2+1] && Mandible[Offset3] > Mandible[Offset3+1]){
-    				  // 最高价 > 鳄鱼组线
-    				  If(High[1] > Lip[Offset1]){
-    					  // 出现下分型
-    					  If(MinIdx == Idx){
-    						  //在下分型的第三根K线买入
-    						  Buy(Lots, Open);
-    						  HigherAfterEntry = Open;
-    						  LowerAfterEntry = Open;
-    					  }
-    				  }
-    			  }
-    		  }
-		
-    	  }
-	
-	
-    	  If(MarketPosition == 1){
-    		  // 多头止损，最高价往下2倍ATR止损
-    		  // 止损价设定
-    		  StopLine = HigherAfterEntry - 2*ATR[1];
-    		  // 不在开仓Bar上进行止损
-    		  If(BarsSinceEntry > 0 && Low < StopLine){
-    			  Sell(Lots, Min(Open, StopLine-MinMove*PriceScale));
-    		  }
-    		  // 加仓设置
-    		  While(HigherAfterEntry > EntryPrice+2*ATR[1] && CountMax <= 4){
-    			  If(Lip[Offset1] > Teeth[Offset2] && Teeth[Offset2] > Mandible[Offset3]){
-    				  If(MinIdx == Idx){
-    					  // 下分型在下鄂线之上时，不参与加仓
-    					  // 暂且设置为每次都开1手
-    					  If(MinValue >= Mandible[Offset3]){
-    							  CountMax = CountMax + 1;
-    							  Buy(1, EntryPrice+2*ATR[1]);
-    					  }
-    				  }
-    			  }
-    		  }
-    	  }
-	
-	 
+        // 计算波动率
+        TR = Max(Max((High - Low), Abs(High-Close[1])), Abs(Close[1] - Low));
+        ATR = XAverage(TR, Length5);
+
+        // 记录进场后最高价
+        If(BarsSinceEntry > 0){
+          HigherAfterEntry = Max(HigherAfterEntry[1], High[1]);
+          LowerAfterEntry = Min(LowerAfterEntry[1], Low[1]);
+        }
+
+        // 定义鳄鱼组线
+        // 唇线：EMA(C, 5) 往前平移3天，这里尚未做平移
+        Lip = XAverage(Close, Length1);
+        // 牙齿：EMA(C, 8) 往前平移5天，这里尚未做平移
+        Teeth = XAverage(Close, Length2);
+        // 下颚：EMA(C, 13) 往前平移8天，这里尚未做平移
+        Mandible = XAverage(Close, Length3);
+
+        // 分型
+        MaxValue = Extremes(High, Length4, True, MaxIdx);
+        MinValue = Extremes(Low, Length4, False, MinIdx);
+
+        If(CurrentBar > Length3){
+          // 下鄂线往前平移8，牙齿线向前平移5，唇线向前平移3，三线发散
+          If(Lip[Offset1] > Teeth[Offset2] && Teeth[Offset2] > Mandible[Offset3]){
+        	  // Lip > Lip[1], Teeth > Teeth[1], Mandible > Mandible[1]
+        	  If(Lip[Offset1] > Lip[Offset1+1] && Teeth[Offset2] > Teeth[Offset2+1] && Mandible[Offset3] > Mandible[Offset3+1]){
+        		  // 最高价 > 鳄鱼组线
+        		  If(High[1] > Lip[Offset1]){
+        			  // 出现下分型
+        			  If(MinIdx == Idx){
+        				  //在下分型的第三根K线买入
+        				  Buy(Lots, Open);
+        				  HigherAfterEntry = Open;
+        				  LowerAfterEntry = Open;
+        			  }
+        		  }
+        	  }
+          }
+
+        }
+
+
+        If(MarketPosition == 1){
+          // 多头止损，最高价往下2倍ATR止损
+          // 止损价设定
+          StopLine = HigherAfterEntry - 2*ATR[1];
+          // 不在开仓Bar上进行止损
+          If(BarsSinceEntry > 0 && Low < StopLine){
+        	  Sell(Lots, Min(Open, StopLine-MinMove*PriceScale));
+          }
+          // 加仓设置
+          While(HigherAfterEntry > EntryPrice+2*ATR[1] && CountMax <= 4){
+        	  If(Lip[Offset1] > Teeth[Offset2] && Teeth[Offset2] > Mandible[Offset3]){
+        		  If(MinIdx == Idx){
+        			  // 下分型在下鄂线之上时，不参与加仓
+        			  // 暂且设置为每次都开1手
+        			  If(MinValue >= Mandible[Offset3]){
+        					  CountMax = CountMax + 1;
+        					  Buy(1, EntryPrice+2*ATR[1]);
+        			  }
+        		  }
+        	  }
+          }
+        }
+
+
       End
     #+END_EXAMPLE
+    
