@@ -1,0 +1,19 @@
+#+TITLE： 奇异混沌
+#+AUTHOR: 胡琛
+
+* Chaos System with Only One Stable Equilibrium
+
+** Abstract
+
+   A simple three-dimensional autonomous quadratic system that has 
+   only one stable equilibrium can be chaotic. The discovery of the
+   new system to be reported in this chapter is indeed striking 
+   because for a three-dimensional autonomous quadratic system
+   with a single stable node-focus equilibrium, one typically
+   would anticipate non-chaotic and even asymptotically converging
+   behaviors. Although the new system is of non-hyperbolic type,
+   therefore the familiar Silnikov homoclinic criterion is not
+   applicable, it's demonstrated to be chaotic in the sense of 
+   having a positive largest Lyapunov exponet, a fractional dimension,
+   a continuous broad frequency spectrum, and a period-doubling route
+   to chaos.
